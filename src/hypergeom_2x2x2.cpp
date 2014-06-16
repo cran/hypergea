@@ -4,24 +4,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <R_ext/Utils.h> /* for R_CheckUserInterrupt() */
-#include <R_ext/Boolean.h> /* for R_CheckUserInterrupt() */
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #define ULONGLONG uint64_t
-
-Rboolean R_ToplevelExec(void (*fun)(void *), void *data);
-
-static void chkIntFn(void *dummy) {
-	R_CheckUserInterrupt();
-}
-// this will call the above in a top-level context so it won't longjmp-out of your context
-int checkInterrupt() {
-	return((int)(R_ToplevelExec(chkIntFn, NULL) == FALSE));
-}
 
 
 extern "C"
@@ -45,7 +33,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 	//results
 	double probTables[4];
 
-	//unsigned long long countTables[4];
 	ULONGLONG countTables[4];
 	ULONGLONG nO000=0;
 	//unsigned long long hist_n000[min_margin+1];
@@ -54,7 +41,7 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 
 	preCalcFact[0]=0;
 	for( h=1; h<= NN; h++){
-		preCalcFact[h]=preCalcFact[h-1]+log(h);
+		preCalcFact[h]=preCalcFact[h-1]+log((double)h);
 	}
 	lfN=2.0*preCalcFact[NN];
 	lfmargins[0]=preCalcFact[ margins[0] ] + preCalcFact[ margins[1] ];
@@ -93,8 +80,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 		#pragma omp for schedule(dynamic)
 		for( i1=0; i1<=minAtFirstPosition; ++i1 ){
 
-			if( FLAG_interrupt ){ continue; }
-
 			int x[2][2][2];
 			x[0][0][0]= -1;
 			x[1][0][0]= -1;
@@ -115,11 +100,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 			int i2=0;
 			int minSecondLoop=(marg[0] - x[0][0][0] );
 			for( i2=0; i2<=minSecondLoop; ++i2 ){
-
-				if( FLAG_interrupt ){ break; }
-				if( (this_thread == 0) && (((++interrupt_counter) & 262143) == 0) && (checkInterrupt()==1) ){ //check if thread is master to check for user interrupt
-					FLAG_interrupt=1; break;
-				}
 
 				x[0][0][1]=i2;
 

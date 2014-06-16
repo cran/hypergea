@@ -18,9 +18,9 @@ void intern_lfactorial( int *xx, int *L, double *r ){
 	preCalcFact=(double*)malloc((mx+1)*sizeof(double));
 	preCalcFact[0]=0;
 	for( l=1; l<= mx; l++){
-		preCalcFact[l]=preCalcFact[l-1]+log((float)l);
+		preCalcFact[l]=preCalcFact[l-1]+log((double)l);
 		l++;
-		preCalcFact[l]=preCalcFact[l-1]+log((float)l);
+		preCalcFact[l]=preCalcFact[l-1]+log((double)l);
 	}
 
 	*r=preCalcFact[(int)xx[0]];

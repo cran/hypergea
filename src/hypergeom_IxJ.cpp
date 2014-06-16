@@ -4,9 +4,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
-//#include <string.h>
-#include <R_ext/Utils.h> /* for R_CheckUserInterrupt() */
-#include <R_ext/Boolean.h> /* for R_CheckUserInterrupt() */
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -14,22 +11,9 @@
 
 #define ULONGLONG uint64_t
 
-Rboolean R_ToplevelExec(void (*fun)(void *), void *data);
-int checkInterrupt(void);
-static void chkIntFn(void *);
-int FLAG_interrupt=0;
-ULONGLONG interrupt_counter=0;
-
 
 extern "C"
 void rec(int **x, int *dim, int *pos, int *margins, ULONGLONG *local_countTables, double *local_probTables, ULONGLONG *local_nO000, double *preCalcFact, int *rowsums, int *colsums, double diff_lfmarginsTotal_lfN, int *O000, double *p0, int this_thread){
-
-	if(FLAG_interrupt){return;} //2**18-1
-	if( this_thread == 0 && (((++interrupt_counter) & 262143) == 0 ) && (checkInterrupt()==1)){ //check if thread is master to check for user interrupt
-		FLAG_interrupt=1; interrupt_counter=0; return;
-	}
-	if(interrupt_counter > 1000000000){interrupt_counter=0;}
-
 
 	int some_columns_left=0;
 	int current_row=pos[0];
@@ -124,7 +108,7 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	for( h=0; h<4; h++ ){ countTables[h]=0; probTables[h]=0.0; }
 
 	preCalcFact[0]=0;
-	for( h=1; h<= NN; ++h ){ preCalcFact[h]=preCalcFact[h-1]+log(h); }
+	for( h=1; h<= NN; ++h ){ preCalcFact[h]=preCalcFact[h-1]+log((double)h); }
 	lfN=preCalcFact[NN];
 	lfmargins[0]=0.0;
 	for( h=0; h<dim[0]; ++h ){ lfmargins[0] += preCalcFact[ margins[h] ]; }
@@ -138,9 +122,6 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	if(*nthreads <= 1){ *nthreads=1; }else{ *nthreads=(*nthreads < omp_get_max_threads()) ? (*nthreads) : (omp_get_max_threads()); }
 	#endif
 
-
-	// state is stored after last run; re-initialize
-	FLAG_interrupt=interrupt_counter=0;
 
 	int minAtFirstPosition=( (margins[ 0 ] < margins[ dim[1] ]) ? margins[ 0 ] : margins[ dim[1] ] );
 
@@ -166,18 +147,6 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 
 		#pragma omp for schedule(dynamic)
 		for( i1=0; i1<=minAtFirstPosition; ++i1 ){
-
-			if(FLAG_interrupt){
-				#ifdef _OPENMP
-				continue;
-				#else
-				break;
-				#endif
-
-			}
-			if( (this_thread == 0) && (((++interrupt_counter) & 262143) == 0 ) && (checkInterrupt()==1) ){ //check if thread is master to check for user interrupt
-				FLAG_interrupt=1; continue;
-			}
 
 			int *pos=new int[2];
 			int *rowsums=new int[dim[0]];
