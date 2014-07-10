@@ -24,7 +24,6 @@ function( x, nthreads=2, ... ){
 	marg.obs <- as.integer(sapply(margins, function(x){x[1]}))
 	Prob <- double(5)
 	Freq <- double(5)
-	Hist_n000 <- double(1) #double(min(marg.obs)+1)
 	n0 <- 0
 	or <- 0
 
@@ -32,11 +31,11 @@ function( x, nthreads=2, ... ){
 
 	res <- c()
 	if( (len_dm == 2) ){
-		res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, Hist_n000, dm, nthreads, PACKAGE="hypergea" )
+		res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, dm, nthreads, PACKAGE="hypergea" )
 		or <- NA; if(dm[1]==2 && dm[2]==2){or <- getOddsRatio(CT)}
 	}
 	if( (len_dm == 3) && all(dm == 2) ){
-		res <- .C("hypergeom_2x2x2", CT[1], N, marg.obs, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, Hist_n000, nthreads, PACKAGE="hypergea" )
+		res <- .C("hypergeom_2x2x2", CT[1], N, marg.obs, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, nthreads, PACKAGE="hypergea" )
 		or <- getOddsRatio(CT)
 	}
 	names(res[[ 'Prob' ]]) <- names(res[[ 'Freq' ]]) <- c("sum", "less", "greater", "two.sided_ml", "two.sided_d")

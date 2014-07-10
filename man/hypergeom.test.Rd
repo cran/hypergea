@@ -20,19 +20,17 @@ a character string specifying the alternative hypothesis,
           \dQuote{less}.
 }
   \item{pval.method}{
-a character string specifying which approach should be used to determine the p-value in a two sided test. Can be \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
+a character string specifying which approach should be used to determine the p-value in a two-sided test. Can be \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
 }
   \item{nthreads}{
 the number of threads that should be used
 }
   \item{...}{
-currently used for testing
+additional arguments. Currently not used
 }
 
 }
 \details{
-The routine calls a wrapper that performs the test.
-
 There is a lot of discussion about the correct way to calculate a p-value in a two sided test. Thus, several alternatives are possible (see Agresti (1992) for a short discussion and further references).
 
 Currently two types of two-sided p-values are implemented. The first one (default) is the minimum-likelihood approach, which is also used by \code{\link{fisher.test}}, for instance. The second one is the so-called doubling approach.

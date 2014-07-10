@@ -18,9 +18,6 @@ table (matrix or array)
 \value{
 an array containing the expected values
 }
-\author{
-Markus Boenn
-}
 \examples{
 x <- array(c(1:8), dim=c(2,2,2))
 getExpectedValues(x)

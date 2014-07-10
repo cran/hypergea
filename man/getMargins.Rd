@@ -17,9 +17,6 @@ a table (matrix, array) without missing values
 \value{
 A list of length \code{length(dim(x))} containing the marginal sums of each dimension
 }
-\author{
-Markus Boenn
-}
 \examples{
 x <- matrix(c(1:4), nrow=2, ncol=2)
 getMargins(x)

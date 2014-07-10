@@ -3,7 +3,7 @@ function(x, za=TRUE){
 	xx <- x
 	if( any( x == 0 ) ){xx <- x + 0.5} # agresti2002, p.71
 	xx <- log(xx)
-	or <- c()
+	or <- NA
 
 	chk1 <- chk2 <- FALSE
 	if( length(dim(x)) == 2 ){

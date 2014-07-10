@@ -92,7 +92,7 @@ return;
 
 
 extern "C"
-void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *Hist_n000, int *dim, int *nthreads){
+void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
 	int NN=*N;
 	int h=0;
 	double *preCalcFact= new double[NN+1];
@@ -130,7 +130,7 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	for( int hh=0; hh<dim[0]; ++hh ){aux_rowsums[hh]=0;}
 	for( int gg=0; gg<dim[1]; ++gg ){ aux_colsums[gg]=0;}
 
-	#pragma omp parallel shared(countTables, probTables, nO000) num_threads(*nthreads)
+	#pragma omp parallel shared(countTables, probTables, nO000) num_threads(*nthreads) if(*nthreads > 1)
 	{
 		int this_thread=0;
 		#ifdef _OPENMP

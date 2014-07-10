@@ -13,30 +13,22 @@
 
 
 extern "C"
-void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, double *n0, double *Prob, double *Freq, double *Hist_n000, int *nthreads){
+void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *nthreads){
 
 	int NN=*N;
 
 	int h=0;
-
 	double *preCalcFact=new double[NN+1];
 
 	double lfN=0.0;
 	double lfmargins[3];
 	double lfmarginsTotal=0.0;
 
-	//int min_margin=marg[0];
-	//if( marg[1] < min_margin ){min_margin=marg[1];}
-	//if( marg[2] < min_margin ){min_margin=marg[2];}
-
 
 	//results
 	double probTables[4];
-
 	ULONGLONG countTables[4];
 	ULONGLONG nO000=0;
-	//unsigned long long hist_n000[min_margin+1];
-
 	for( h=0; h<4; h++ ){ countTables[h]=0; probTables[h]=0.0; }
 
 	preCalcFact[0]=0;
@@ -52,25 +44,14 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 	double diff_lfmarginsTotal_lfN=lfmarginsTotal-lfN;
 	int N_minus_marg2=NN - marg[2];
 
-	//for( h=0; h<= min_margin; h++){ hist_n000[h]=0; }
 	int i1=0;
-
 
 	#ifdef _OPENMP
 	if(*nthreads <= 1){ *nthreads=1; }else{ *nthreads=(*nthreads < omp_get_max_threads()) ? (*nthreads) : (omp_get_max_threads()); }
 	#endif
 
-	int minAtFirstPosition=( (marg[0] < marg[1]) ? marg[0] : marg[1] );
-	minAtFirstPosition=( (minAtFirstPosition < marg[2]) ? minAtFirstPosition : marg[2] );
-
-	ULONGLONG interrupt_counter=0;
-	int FLAG_interrupt=0;
 	#pragma omp parallel shared(countTables, probTables, nO000) num_threads(*nthreads)
 	{
-		int this_thread=0;
-		#ifdef _OPENMP
-		this_thread=omp_get_thread_num();
-		#endif
 
 		ULONGLONG local_nO000=0;
 		ULONGLONG local_countTables[4];
@@ -78,18 +59,9 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 		for( h=0; h<4; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
 
 		#pragma omp for schedule(dynamic)
-		for( i1=0; i1<=minAtFirstPosition; ++i1 ){
+		for( i1=0; i1<=marg[0]; ++i1 ){
 
 			int x[2][2][2];
-			x[0][0][0]= -1;
-			x[1][0][0]= -1;
-			x[0][1][0]= -1;
-			x[1][1][0]= -1;
-			x[0][0][1]= -1;
-			x[1][0][1]= -1;
-			x[0][1][1]= -1;
-			x[1][1][1]= -1;
-
 			x[0][0][0]=i1;
 
 			double lm1=0.0;
@@ -145,8 +117,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 						if( x[0][0][0] >= *O000 ){ local_probTables[2] += prob; ++local_countTables[2]; } //greater
 						if( prob <= *p0 ){ local_probTables[3] += prob; ++local_countTables[3]; } //two sided, minimum likelihood
 
-						//local_hist_n000[ x[0][0][0] ]++;
-
 					} //end loop i4
 				} //end loop i3
 			} //end loop i2
@@ -159,8 +129,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 				probTables[h] += local_probTables[h];
 			}
 			nO000 += local_nO000;
-
-			//for( h=0; h<= min_margin; h++){hist_n000[h] += local_hist_n000[h];}
 		}
 	}
 
@@ -175,7 +143,6 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 	Freq[4]=2.0*min_count;
 
 	*n0=nO000;
-	//for( h=0; h<= min_margin; h++){ Hist_n000[h]=hist_n000[h]; }
 
 	delete [] preCalcFact;
 }
