@@ -1,11 +1,12 @@
-f73d376da65ccc57f4e1a7127cc25c4e *DESCRIPTION
+f492f4d4e23757bdd654269de4c1f8ef *DESCRIPTION
 293f400a25b859fd72ab7cf29cecf504 *NAMESPACE
 5688b42144d0c391b9c0fedf1ca84a42 *R/getExpectedValues.R
 1cd7d02250140f5492957a47d6564d5f *R/getMargins.R
 034a99449dbd35ba6d4cd163add0e699 *R/getOddsRatio.R
-aba317b76f27532ba64a28f6c04c0a08 *R/hypergea-internal.R
+f04cb44b082535d2c7f8bf31dcb0673b *R/hypergea-internal.R
 4535a2afecadbfaf1c2c5b244b42e724 *R/hypergeom.test.R
 8dbe7e1dbdf845550fb2cadad77eb325 *R/zzz.R
+09176724144e7f20525f4a159d5b3507 *inst/NEWS.Rd
 4f0cce673b1c515c3f10fb9e29a9fa00 *man/getExpectedValues.Rd
 ab77d16c97e557414b47750dc758515c *man/getMargins.Rd
 584a6fd1acffbf52533db2a330f2e8f7 *man/getOddsRatio.Rd
@@ -13,5 +14,5 @@ d2cec03a29d68371ab487aec59927f33 *man/hypergea-package.Rd
 5e2b5ebb7310e5161f94e6715ed07015 *man/hypergeom.test.Rd
 bf7e140fc030043484ca8d2e096baba8 *src/Makevars
 121f69ecc7b828f82299d3edc206dfb2 *src/hypergeom_2x2x2.cpp
-b749ad02cceb5cf95fc413581f24cbc5 *src/hypergeom_IxJ.cpp
+ad055e0c0a1abc0284b0ff3e96cf4935 *src/hypergeom_IxJ.cpp
 7bebcd374a03cda3e264aa333eee1f9c *src/lfactorial.c

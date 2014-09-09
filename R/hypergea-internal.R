@@ -16,9 +16,12 @@ function( x, nthreads=2, ... ){
 	if( any(is.na(x)) ){ stop(paste0("Unable to deal with NA in ", sQuote("x"))) }
 	CT <- apply(x, 1:len_dm, as.integer)
 	if( !all( CT == x ) ){ warning(paste0(sQuote("x"), " contains non-integer values, are truncated")) }
-	if( !(len_dm < 4) ){ stop(paste0("dimension of ", sQuote("x"), " currently not supported")) }
-
+	if( !(len_dm < 4) ){ warning(paste0("dimension of ", sQuote("x"), " currently not supported")) }
+	
+	if( dm[1] == 2 && dm[1]<dm[2] ){ CT <- t(CT) }
+	
 	N <- as.integer(sum(CT))
+	dm <- as.integer(dim(CT))
 	margins <- getMargins( CT )
 	prob.obs <- getProbObs( margins, CT, N, dm )
 	marg.obs <- as.integer(sapply(margins, function(x){x[1]}))
@@ -35,6 +38,7 @@ function( x, nthreads=2, ... ){
 		or <- NA; if(dm[1]==2 && dm[2]==2){or <- getOddsRatio(CT)}
 	}
 	if( (len_dm == 3) && all(dm == 2) ){
+		marg.obs <- sort(marg.obs, decreasing=FALSE)
 		res <- .C("hypergeom_2x2x2", CT[1], N, marg.obs, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, nthreads, PACKAGE="hypergea" )
 		or <- getOddsRatio(CT)
 	}
@@ -49,6 +53,7 @@ function( x, nthreads=2, ... ){
 		prob.obs=as.numeric(prob.obs), count.obs=as.integer(CT[1]), freq.count.obs=as.numeric(res[[ 'n0' ]]), odds.ratio=or
 		, nthreads=nthreads, conf.int=conf.int
 	)
+	if( abs(res[[ 'Prob' ]][1] - 1) > 1e-6 ){ warning( paste("Invalid total probability: ", res[[ 'Prob' ]][1], sep="") ) }
 
 return(obj)
 }
