@@ -4,11 +4,11 @@
 Hypergeometric test
 }
 \description{
-Performs exact hypergeometric tests for \eqn{I \times J} and \eqn{2 \times 2 \times 2} contingency tables
+Performs exact hypergeometric tests for \eqn{I \times J}{IxJ} and \eqn{2 \times 2 \times 2}{2x2x2} contingency tables
 }
 \usage{
 hypergeom.test(x, alternative = "two.sided",
-	pval.method = "minimum.likelihood", nthreads = 2, \dots)
+	pval.method = "fisheR", nthreads = 2, \dots)
 }
 \arguments{
   \item{x}{
@@ -20,7 +20,7 @@ a character string specifying the alternative hypothesis,
           \dQuote{less}.
 }
   \item{pval.method}{
-a character string specifying which approach should be used to determine the p-value in a two-sided test. Can be \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
+a character string specifying which approach should be used to determine the p-value in a two-sided test. Can be \dQuote{fisheR}, \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
 }
   \item{nthreads}{
 the number of threads that should be used
@@ -33,14 +33,14 @@ additional arguments. Currently not used
 \details{
 There is a lot of discussion about the correct way to calculate a p-value in a two sided test. Thus, several alternatives are possible (see Agresti (1992) for a short discussion and further references).
 
-Currently two types of two-sided p-values are implemented. The first one (default) is the minimum-likelihood approach, which is also used by \code{\link{fisher.test}}, for instance. The second one is the so-called doubling approach.
+Three types of two-sided p-values are implemented. The first one (default) is the approach used by the Fisher's test implementation In R. It is currently used only for \eqn{2 \times 2}{2x2} tables. It is similar to the minimum-likelihood approach, which is also usable. The third one is the so-called doubling approach. In case of tables with I!=2 and J=!2 or \eqn{2 \times 2 \times 2}{2x2x2} tables instead of the fisheR implementation the minimum-likelihood implementation is applied.
 
 }
 \value{
 A list with class \sQuote{"htest"} containing the following components
 \item{statistic}{the value observed if the cell of interest}
 \item{p.value}{the p-value for the selected test}
-\item{estimate}{the odds ratio calculated from \sQuote{x}}
+\item{estimate}{the sample odds ratio calculated from \sQuote{x}}
 \item{alternative}{a character string describing the alternative hypothesis}
 \item{method}{a character string indicating what type of hypergeometric test was performed}
 \item{conf.int}{the 95\% confidence interval of the odds ratio}
@@ -74,7 +74,6 @@ The code for 2x2x2 hypergeometric test is a C translation of the
 	##########
 	## example from Agresti (1992), Table 2
 	## Fisher's tea tasting experiment
-	# Chi-squared based tests are underestimating p-value
 	##########
 	dmn <- list('poured first'=c('m', 't'), guess=c('m', 't'))
 	CT <- matrix(c(3,1,1,3), nrow=2, dimnames=dmn)

@@ -4,7 +4,7 @@
 Marginal sums of multidimensional contingency tables
 }
 \description{
-Calculates marginal sums for IxJ and IxJxK tables
+Calculates marginal sums for \eqn{I\times J}{IxJ} and \eqn{I\times J\times K}{IxJxK} tables
 }
 \usage{
 getMargins(x)
@@ -15,7 +15,7 @@ a table (matrix, array) without missing values
 }
 }
 \value{
-A list of length \code{length(dim(x))} containing the marginal sums of each dimension
+A list of \code{length(dim(x))} containing the marginal sums of each dimension
 }
 \examples{
 x <- matrix(c(1:4), nrow=2, ncol=2)

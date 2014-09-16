@@ -11,8 +11,9 @@
 #endif
 
 #define ULONGLONG uint64_t
+#define NUMBER_OF_PVAL 6-1
 
-// #include <stdio.h>
+//#include <stdio.h>
 // void printTable(int **x, int *dim, int *rowsums, int *colsums, int *margins){
 // 		printf("-------------------------------------------------------\n");
 // 		for( int i=0; i<dim[0]; i++ ){
@@ -37,8 +38,15 @@ struct StructConstants{
 	double *preCalcFact;
 	double diff_lfmarginsTotal_lfN;
 	double *p0;
+	int *t0;
 	int *O000;
 };
+
+
+
+
+
+
 
 
 void update( int **x, int *dim, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, double *preCalcFact, int *O000, double *p0, double diff_lfmarginsTotal_lfN ){
@@ -46,19 +54,30 @@ void update( int **x, int *dim, ULONGLONG *countTables, double *probTables, ULON
 	for(int i=0; i<dim[0]; ++i){for(int j=0; j<dim[1]; ++j){lmm += preCalcFact[ x[i][j] ];}}
 	double prob=(diff_lfmarginsTotal_lfN - lmm) < -708 ? 0.0 : exp(diff_lfmarginsTotal_lfN - lmm); // Taylor series approximation beyond x=-708 always zero (at double precision), but extremely slow
 	probTables[0] += prob; ++countTables[0];
-	if( x[0][0] == *O000 ){ ++nO000[0]; }
-	if( x[0][0] <= *O000 ){ probTables[1] += prob; ++countTables[1]; } //less
-	if( x[0][0] >= *O000 ){ probTables[2] += prob; ++countTables[2]; } //greater
-	if( prob <= *p0 ){ probTables[3] += prob; ++countTables[3]; } //two sided, minimum likelihood
+	if( x[0][0] == *O000 )	{ ++nO000[0]; }
+	if( x[0][0] <= *O000 )	{ probTables[1] += prob; ++countTables[1]; } //less
+	if( x[0][0] >= *O000 )	{ probTables[2] += prob; ++countTables[2]; } //greater
+	if( prob <= *p0 )	{ probTables[3] += prob; ++countTables[3]; } //two sided, minimum likelihood
 }
 
 
+
+
+/*
+ * 
+ * 	CASE 2 x 2
+ * 
+ */
 
 
 extern "C"
 void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, int *nthreads){
 
 	int *margins=Constants->margins;
+	int min00=( (margins[0] < margins[2]) ? margins[0] : margins[2] );
+	int max00=( (0>margins[0]-margins[3]) ? 0 : margins[0]-margins[3] );
+	int support[2]; support[0]=max00; support[1]=min00; 
+	int *dim=Constants->dim;
 	#pragma omp parallel shared(countTables, probTables, nO000) num_threads(*nthreads) if(*nthreads > 1)
 	{
 		ULONGLONG *local_nO000=new ULONGLONG[1];
@@ -66,10 +85,11 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		ULONGLONG *local_countTables=new ULONGLONG[4];
 		double *local_probTables=new double[4];
 		for( int h=0; h<4; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
-	
-		int min00=( (margins[0] < margins[2]) ? margins[0] : margins[2] );
+		ULONGLONG *local_hist=new ULONGLONG[support[1]+1];
+		for( int h=0; h<support[1]+1; ++h ){ local_hist[h]=0; }
+		
 		#pragma omp for schedule(dynamic)
-		for( int i=0; i<=min00; ++i ){
+		for( int i=support[0]; i<=support[1]; ++i ){
 			int *rowsums=new int[2];
 			int *colsums=new int[2];
 			int **x=new int*[ 2 ];
@@ -88,8 +108,11 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 			x[1][1]=margins[3]-x[0][1];
 			rowsums[1] += x[1][1]; colsums[1] += x[1][1];
 			
-			update( x, Constants->dim, countTables, probTables, nO000
+			//printTable(x, dim, rowsums, colsums, margins);
+			
+			update( x, Constants->dim, local_countTables, local_probTables, local_nO000
 					, Constants->preCalcFact, Constants->O000, Constants->p0, Constants->diff_lfmarginsTotal_lfN );
+			
 			
 			delete[] rowsums; delete[] colsums;
 			delete[] x[0]; delete[] x[1]; delete[] x;
@@ -107,7 +130,33 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		delete[] local_countTables;
 		delete[] local_probTables;
 		delete[] local_nO000;
+		delete[] local_hist;
 	}
+
+	/*
+	 *  calc two.sided P-value, fisheR
+	 */
+	double *logdc=new double[support[1]+1];
+	double *preCalcFact=Constants->preCalcFact;
+	double max=-1000000000.0;
+	double sum=0.0;
+	for( int i=support[0]; i<=support[1]; i++ ){
+		logdc[i]  = preCalcFact[ margins[2] ] - ( preCalcFact[ i ] + preCalcFact[ margins[2]-i ] );
+		logdc[i] += preCalcFact[ margins[3] ] - ( preCalcFact[ margins[0]-i ] + preCalcFact[ margins[3]-(margins[0]-i) ] );
+		logdc[i] -= preCalcFact[ margins[2]+margins[3] ] - ( preCalcFact[ margins[0] ] + preCalcFact[ margins[2]+margins[3]-margins[0] ] );
+		if( logdc[i] > max ){ max=logdc[i]; }
+	}
+	for( int i=support[0]; i<=support[1]; i++ ){
+		logdc[i]=exp( logdc[i]-max ); sum += logdc[i];
+	}
+	double pval=0.0;
+	for( int i=support[0]; i<=support[1]; i++ ){ logdc[i] /= sum; }
+	for( int i=support[0]; i<=support[1]; i++ ){
+		if( logdc[i] <= logdc[ *(Constants->O000) ]*(1+1e-7) ){ pval += logdc[i]; }
+	}
+
+	probTables[4] = pval; ++countTables[4]; // the fisheR.test way
+	delete[] logdc;
 }
 
 
@@ -219,12 +268,14 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		delete[] local_probTables;
 		delete[] local_nO000;
 	}
+	
+	
 }
 
 
 /*
  * 
- * 	CASE I x J ----------------UNDER CONSTRUCTION
+ * 	CASE I x J
  * 
  */
 
@@ -372,7 +423,7 @@ void runIxJ(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 
 extern "C"
-void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
+void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, int *t0, double *Prob, double *Freq, int *dim, int *nthreads){
 
 	int NN=*N;
 	int h=0;
@@ -383,12 +434,12 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 
 	//results
 	ULONGLONG zeroInt=0;
-	ULONGLONG *countTables=new ULONGLONG[4];
-	double *probTables=new double[4];
+	ULONGLONG *countTables=new ULONGLONG[NUMBER_OF_PVAL];
+	double *probTables=new double[NUMBER_OF_PVAL];
 	ULONGLONG *nO000=&zeroInt;
 
 	
-	for( h=0; h<4; h++ ){ countTables[h]=0; probTables[h]=0.0; }
+	for( h=0; h<NUMBER_OF_PVAL; h++ ){ countTables[h]=0; probTables[h]=0.0; }
 
 	preCalcFact[0]=0;
 	for( h=1; h<= NN; ++h ){ preCalcFact[h]=preCalcFact[h-1]+log((double)h); }
@@ -411,6 +462,7 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	Constants->preCalcFact=preCalcFact;
 	Constants->diff_lfmarginsTotal_lfN=diff_lfmarginsTotal_lfN;
 	Constants->p0=p0;
+	Constants->t0=t0;
 	Constants->O000=O000;
 	Constants->dim=dim;
 	Constants->margins=margins;
@@ -418,24 +470,30 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	
 	if( dim[0]==2 && dim[1]==2 ){
 		run2x2(Constants, countTables, probTables, nO000, nthreads);
+
 	}else{
-		if( dim[0]>=2 && dim[1]==2 ){
+		if( dim[0]>2 && dim[1]==2 ){
 			runIx2(Constants, countTables, probTables, nO000, nthreads);
 		}else{
 			runIxJ(Constants, countTables, probTables, nO000, nthreads);
 		}
 	}
+	
+	
 
-	for( h=0; h<4; ++h ){
+	
+	
+	// h=0: cum; h=1: less; h=2: greater; h=3: two-sided (ml); h=4: two-sided (fisheR); h=5: two-sided (double)
+	for( h=0; h<NUMBER_OF_PVAL; ++h ){
 		Freq[h] += countTables[h];
 		Prob[h] += probTables[h];
 	}
+	if( dim[0]!=2 && dim[1]!=2 ){ Freq[4]=Freq[3]; Prob[4]=Prob[3]; }
 	double min=Prob[1];
 	ULONGLONG min_count=Freq[1];
 	if( min>Prob[2] ){ min=Prob[2];min_count=Freq[2]; }
-	Prob[4]=2.0*min;
-	Freq[4]=2.0*min_count;
-
+	Prob[5]=2.0*min;
+	Freq[5]=2.0*min_count;
 	double ll=*nO000;
 	*n0=ll;
 

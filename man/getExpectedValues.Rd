@@ -22,8 +22,6 @@ an array containing the expected values
 x <- array(c(1:8), dim=c(2,2,2))
 getExpectedValues(x)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{ contingency table }
 \keyword{ marginal }
 \keyword{ expected value }

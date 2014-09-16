@@ -19,22 +19,25 @@ function( x, nthreads=2, ... ){
 	if( !(len_dm < 4) ){ warning(paste0("dimension of ", sQuote("x"), " currently not supported")) }
 	
 	if( dm[1] == 2 && dm[1]<dm[2] ){ CT <- t(CT) }
+	if( dm[1]<dm[2] ){ CT <- t(CT) }
 	
 	N <- as.integer(sum(CT))
 	dm <- as.integer(dim(CT))
 	margins <- getMargins( CT )
 	prob.obs <- getProbObs( margins, CT, N, dm )
 	marg.obs <- as.integer(sapply(margins, function(x){x[1]}))
-	Prob <- double(5)
-	Freq <- double(5)
+	Prob <- double(6)
+	Freq <- double(6)
 	n0 <- 0
 	or <- 0
+	Hist <- double(0)
 
  	nthreads <- as.integer(nthreads)
 
 	res <- c()
 	if( (len_dm == 2) ){
-		res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, dm, nthreads, PACKAGE="hypergea" )
+		Hist <- double(max(unlist(margins)))
+		res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), t0=c(t(CT)), Prob=Prob, Freq=Freq, dm, nthreads, PACKAGE="hypergea" )
 		or <- NA; if(dm[1]==2 && dm[2]==2){or <- getOddsRatio(CT)}
 	}
 	if( (len_dm == 3) && all(dm == 2) ){
@@ -42,7 +45,7 @@ function( x, nthreads=2, ... ){
 		res <- .C("hypergeom_2x2x2", CT[1], N, marg.obs, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, nthreads, PACKAGE="hypergea" )
 		or <- getOddsRatio(CT)
 	}
-	names(res[[ 'Prob' ]]) <- names(res[[ 'Freq' ]]) <- c("sum", "less", "greater", "two.sided_ml", "two.sided_d")
+	names(res[[ 'Prob' ]]) <- names(res[[ 'Freq' ]]) <- c("sum", "less", "greater", "two.sided_ml", "two.sided_fisheR", "two.sided_d")
 
 	cse <- 1.96*sqrt( sum(1/(CT+ifelse(any(CT==0), 0.5, 0))) )
 	conf.int <- exp(c(log(or)-cse, log(or)+cse))
@@ -51,9 +54,9 @@ function( x, nthreads=2, ... ){
 	obj <- list(
 		table=CT, margins=margins, prob=res[[ 'Prob' ]], count=res[[ 'Freq' ]],
 		prob.obs=as.numeric(prob.obs), count.obs=as.integer(CT[1]), freq.count.obs=as.numeric(res[[ 'n0' ]]), odds.ratio=or
-		, nthreads=nthreads, conf.int=conf.int
+		, nthreads=nthreads, conf.int=conf.int, hist=Hist
 	)
-	if( abs(res[[ 'Prob' ]][1] - 1) > 1e-6 ){ warning( paste("Invalid total probability: ", res[[ 'Prob' ]][1], sep="") ) }
+	#if( abs(res[[ 'Prob' ]][1] - 1) > 1e-6 ){ warning( paste("Invalid total probability: ", res[[ 'Prob' ]][1], sep="") ) }
 
 return(obj)
 }

@@ -6,19 +6,13 @@
 Hypergeometric tests
 }
 \description{
-The package hypergea provides parallelized methods to perform exact hypergeometric tests on IxJ and 2x2x2 contingency tables
+The package hypergea provides parallelized methods to perform exact hypergeometric tests on \eqn{I\times J}{IxJ} and \eqn{2\times2\times2}{2x2x2} contingency tables
 }
 \details{
-%\tabular{ll}{
-%Package: \tab hypergea\cr
-%Type: \tab Package\cr
-%Version: \tab 1.0\cr
-%Date: \tab 2014-06-16\cr
-%License: \tab GPL (>= 2)\cr
-%}
-The package enables users to perform exact tests for IxJ and 2x2x2 contingency tables.
+The package enables users to perform exact tests for \eqn{I\times J}{IxJ} and \eqn{2\times2\times2}{2x2x2} contingency tables. For this, a C code implementation is used with a parallelized loop (OpenMP) to allow exact test even for large values in the contingency tables in little time.
 }
 \author{
 Markus Boenn
 }
 \keyword{ package }
+\keyword{ OpenMP }

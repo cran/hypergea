@@ -10,10 +10,13 @@
 #endif
 
 #define ULONGLONG uint64_t
+#define NUMBER_OF_PVAL 6-1
 
+#include <stdio.h>
 
 extern "C"
 void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *nthreads){
+
 
 	int NN=*N;
 
@@ -26,10 +29,10 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 
 
 	//results
-	double probTables[4];
-	ULONGLONG countTables[4];
+	double probTables[NUMBER_OF_PVAL];
+	ULONGLONG countTables[NUMBER_OF_PVAL];
 	ULONGLONG nO000=0;
-	for( h=0; h<4; h++ ){ countTables[h]=0; probTables[h]=0.0; }
+	for( h=0; h<NUMBER_OF_PVAL; h++ ){ countTables[h]=0; probTables[h]=0.0; }
 
 	preCalcFact[0]=0;
 	for( h=1; h<= NN; h++){
@@ -50,16 +53,21 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 	if(*nthreads <= 1){ *nthreads=1; }else{ *nthreads=(*nthreads < omp_get_max_threads()) ? (*nthreads) : (omp_get_max_threads()); }
 	#endif
 
+	int support[2];
+	support[0]=0;
+	support[1]=( (margins[0] < margins[2]) ? margins[0] : margins[2] );
+	support[1]=( (support[1] < margins[4]) ? support[1] : margins[4] );
+	
 	#pragma omp parallel shared(countTables, probTables, nO000) num_threads(*nthreads)
 	{
 
 		ULONGLONG local_nO000=0;
-		ULONGLONG local_countTables[4];
-		double local_probTables[4];
-		for( h=0; h<4; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
+		ULONGLONG local_countTables[NUMBER_OF_PVAL];
+		double local_probTables[NUMBER_OF_PVAL];
+		for( h=0; h<NUMBER_OF_PVAL; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
 
 		#pragma omp for schedule(dynamic)
-		for( i1=0; i1<=marg[0]; ++i1 ){
+		for( i1=support[0]; i1<=support[1]; ++i1 ){
 
 			int x[2][2][2];
 			x[0][0][0]=i1;
@@ -124,7 +132,7 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 
 		#pragma omp critical
 		{
-			for( h=0; h<4; h++ ){
+			for( h=0; h<NUMBER_OF_PVAL; h++ ){
 				countTables[h] += local_countTables[h];
 				probTables[h] += local_probTables[h];
 			}
@@ -132,17 +140,21 @@ void hypergeom_2x2x2(int *O000, int *N, int *marg, int *margins, double *p0, dou
 		}
 	}
 
-	for( h=0; h<4; h++ ){
+	for( h=0; h<NUMBER_OF_PVAL; h++ ){
 		Freq[h] += countTables[h];
 		Prob[h] += probTables[h];
 	}
+	Freq[4] = countTables[3];
+	Prob[4] = probTables[3];
+	
 	double min=Prob[1];
 	ULONGLONG min_count=Freq[1];
 	if( min>Prob[2] ){ min=Prob[2];min_count=Freq[2]; }
-	Prob[4]=2.0*min; if(Prob[4]>1.0){Prob[4]=1.0;}
-	Freq[4]=2.0*min_count;
+	Prob[5]=2.0*min; if(Prob[5]>1.0){Prob[5]=1.0;}
+	Freq[5]=2.0*min_count;
 
 	*n0=nO000;
-
+	
+	
 	delete [] preCalcFact;
 }
