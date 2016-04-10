@@ -1,5 +1,6 @@
 \name{hypergeom.test}
 \alias{hypergeom.test}
+\alias{hypergeom.test.list}
 \title{
 Hypergeometric test
 }

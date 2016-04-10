@@ -10,21 +10,21 @@ void intern_lfactorial( int *xx, int *L, double *r ){
 	int LL=(*L);
 	double *preCalcFact;
 	int mx=xx[0];
-	for( l=1; l<LL; l++ ){
+	for( l=1; l<LL; ++l ){
 		if((xx[l])>mx){ mx = xx[l]; }
 	}
-	if( mx%2==1 ){mx++;}
+	if( mx%2==1 ){++mx;}
 
 	preCalcFact=(double*)malloc((mx+1)*sizeof(double));
 	preCalcFact[0]=0;
-	for( l=1; l<= mx; l++){
+	for( l=1; l<= mx; ++l){
 		preCalcFact[l]=preCalcFact[l-1]+log((double)l);
-		l++;
+		++l;
 		preCalcFact[l]=preCalcFact[l-1]+log((double)l);
 	}
 
 	*r=preCalcFact[(int)xx[0]];
-	for(l=1; l<LL; l++){
+	for(l=1; l<LL; ++l){
 		*r += preCalcFact[(int)xx[l]];
 	}
 

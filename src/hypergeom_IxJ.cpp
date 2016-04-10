@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <cstring>
+
 
 
 #ifdef _OPENMP
@@ -11,7 +13,7 @@
 #endif
 
 #define ULONGLONG uint64_t
-#define NUMBER_OF_PVAL 6-1
+#define NUMBER_OF_PVAL (6-1)
 
 //#include <stdio.h>
 // void printTable(int **x, int *dim, int *rowsums, int *colsums, int *margins){
@@ -38,7 +40,6 @@ struct StructConstants{
 	double *preCalcFact;
 	double diff_lfmarginsTotal_lfN;
 	double *p0;
-	int *t0;
 	int *O000;
 };
 
@@ -198,8 +199,8 @@ void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int
 			xx[ii][1]=x[ii][1];
 		}
 		for( int h = 0; h<=remain_col; ++h ){
-			memcpy((void*)colsums0, (void*)colsums, 2*sizeof(int));
-			memcpy((void*)rowsums0, (void*)rowsums, I*sizeof(int)); 
+			std::memcpy((void*)colsums0, (void*)colsums, 2*sizeof(int));
+			std::memcpy((void*)rowsums0, (void*)rowsums, I*sizeof(int)); 
 			if( margins[ i ] - h < 0 ){ continue; } // skip if invalid margin
 			xx[i][0]=h; xx[i][1]=margins[ i ] - xx[i][0]; 
 			colsums0[0] += xx[i][0]; colsums0[1] += xx[i][1];
@@ -318,7 +319,7 @@ void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int
 		int **xx=new int*[ I ];
 		for( int ii=0; ii<I; ++ii ){ 
 			xx[ii]=new int[J];
-			memcpy((void*)xx[ii], (void*)x[ii], J*sizeof(int));
+			std::memcpy((void*)xx[ii], (void*)x[ii], J*sizeof(int));
 			//for( int jj=0; jj<J; ++jj ){ xx[ii][jj]=x[ii][jj]; }
 		}
 		
@@ -336,8 +337,8 @@ void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int
 			if( margins[ i ] - h < 0 ){ continue; } // skip if invalid margin (row)
 			if( margins[ I+j ] - h < 0 ){ continue; } // skip if invalid margin (col)
 			
-			memcpy((void*)rowsums0, (void*)rowsums, I*sizeof(int));
-			memcpy((void*)colsums0, (void*)colsums, J*sizeof(int));
+			std::memcpy((void*)rowsums0, (void*)rowsums, I*sizeof(int));
+			std::memcpy((void*)colsums0, (void*)colsums, J*sizeof(int));
 			
 			xx[i][j]=h; 
 			rowsums0[i] += xx[i][j];
@@ -423,7 +424,7 @@ void runIxJ(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 
 extern "C"
-void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, int *t0, double *Prob, double *Freq, int *dim, int *nthreads){
+void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
 
 	int NN=*N;
 	int h=0;
@@ -462,7 +463,6 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, int 
 	Constants->preCalcFact=preCalcFact;
 	Constants->diff_lfmarginsTotal_lfN=diff_lfmarginsTotal_lfN;
 	Constants->p0=p0;
-	Constants->t0=t0;
 	Constants->O000=O000;
 	Constants->dim=dim;
 	Constants->margins=margins;
@@ -502,5 +502,97 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, int 
 	delete[] probTables;
 	//free(nO000);
 	free(Constants);
+}
+
+
+//void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
+extern "C"
+SEXP hypergeom_IxJ_a(SEXP O000, SEXP N, SEXP margins, SEXP p0, SEXP dim, SEXP nthreads){
+	
+
+	double *n0=new double[1];
+	double *Prob= new double[NUMBER_OF_PVAL+1];
+	double *Freq= new double[NUMBER_OF_PVAL+1];
+	for(int h=0; h<NUMBER_OF_PVAL+1; ++h){
+		Prob[h]=Freq[h]=0.0;
+	}
+	hypergeom_IxJ(INTEGER(O000), INTEGER(N), INTEGER(margins), REAL(p0), n0, Prob, Freq, INTEGER(dim), INTEGER(nthreads));
+	
+	SEXP n0_=PROTECT(allocVector(REALSXP, 1));
+	REAL(n0_)[0]=n0[0];
+	SEXP Prob_=PROTECT(allocVector(REALSXP, NUMBER_OF_PVAL+1));
+	SEXP Freq_=PROTECT(allocVector(REALSXP, NUMBER_OF_PVAL+1));
+	for( int h=0; h<NUMBER_OF_PVAL+1; ++h ){
+		REAL(Prob_)[h]=Prob[h];
+		REAL(Freq_)[h]=Freq[h];
+	}
+	
+	SEXP lst=PROTECT( allocVector( VECSXP, 3 ) );
+	SET_VECTOR_ELT(lst, 0, (n0_));
+	SET_VECTOR_ELT(lst, 1, (Prob_));
+	SET_VECTOR_ELT(lst, 2, (Freq_));
+	
+	UNPROTECT(4);
+	delete[] Prob;
+	delete[] Freq;
+	delete[] n0;
+	return(lst);
+}
+
+
+
+
+//void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
+extern "C"
+SEXP hypergeom_IxJ_list(SEXP O000_vec, SEXP N, SEXP margins_list, SEXP p0_vec, SEXP dim, SEXP nthreads){
+	int ntab=length(O000_vec);
+
+	SEXP lst_out=PROTECT( allocVector( VECSXP, ntab ) );
+	
+	int *O000_vec_intern=INTEGER(O000_vec);
+	double *p0_vec_intern=REAL(p0_vec);
+
+	int NP=NUMBER_OF_PVAL+1;
+	double *n0=new double[1];
+	double *Prob= new double[NP];
+	double *Freq= new double[NP];
+	
+	
+	int *NN=INTEGER(N);
+	int *DIM=INTEGER(dim);
+	int *Nthreads=INTEGER(nthreads);
+	
+	for( int i=0; i<ntab; ++i ){
+		n0[0]=0;
+		for(int h=0; h<NP; ++h){
+			Prob[h]=Freq[h]=0.0;
+		}
+		hypergeom_IxJ(&(O000_vec_intern[i]), NN, INTEGER(VECTOR_ELT(margins_list, i)), &(p0_vec_intern[i]), n0, Prob, Freq, DIM, Nthreads);
+		
+		SEXP n0_=PROTECT(allocVector(REALSXP, 1));
+		SEXP Prob_=PROTECT(allocVector(REALSXP, NP));
+		SEXP Freq_=PROTECT(allocVector(REALSXP, NP));
+		
+		REAL(n0_)[0]=n0[0];
+		for( int h=0; h<NP; ++h ){
+			REAL(Prob_)[h]=Prob[h];
+			REAL(Freq_)[h]=Freq[h];
+		}
+		
+		SEXP lst=PROTECT( allocVector( VECSXP, 3 ) );
+		SET_VECTOR_ELT(lst, 0, (n0_));
+		SET_VECTOR_ELT(lst, 1, (Prob_));
+		SET_VECTOR_ELT(lst, 2, (Freq_));
+				
+		UNPROTECT(4);
+		
+		SET_VECTOR_ELT(lst_out, i, lst);
+	}
+	delete[] Prob;
+	delete[] Freq;
+	delete[] n0;
+
+	UNPROTECT(1);
+	return(lst_out);
 }
 

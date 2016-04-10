@@ -36,8 +36,14 @@ function( x, nthreads=2, ... ){
 
 	res <- c()
 	if( (len_dm == 2) ){
-		Hist <- double(max(unlist(margins)))
-		res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), t0=c(t(CT)), Prob=Prob, Freq=Freq, dm, nthreads, PACKAGE="hypergea" )
+		if( !is.null(list(...)$aa) ){ 		
+		res <- .Call("hypergeom_IxJ_a", CT[1], N, (unlist(margins)), (prob.obs), dm, nthreads, PACKAGE="hypergea")
+		names(res) <- c("n0", "Prob", "Freq")
+
+		}else{
+			res <- .C("hypergeom_IxJ", CT[1], N, as.integer(unlist(margins)), as.numeric(prob.obs), n0=as.numeric(n0), Prob=Prob, Freq=Freq, dm, nthreads, PACKAGE="hypergea" )
+
+		}
 		or <- NA; if(dm[1]==2 && dm[2]==2){or <- getOddsRatio(CT)}
 	}
 	if( (len_dm == 3) && all(dm == 2) ){
