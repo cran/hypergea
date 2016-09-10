@@ -1,6 +1,5 @@
 \name{hypergeom.test}
 \alias{hypergeom.test}
-\alias{hypergeom.test.list}
 \title{
 Hypergeometric test
 }
@@ -18,10 +17,10 @@ an integer array (or matrix) without missing values
   \item{alternative}{
 a character string specifying the alternative hypothesis,
           must be one of \dQuote{two.sided} (default), \dQuote{greater} or
-          \dQuote{less}.
+          \dQuote{less}
 }
   \item{pval.method}{
-a character string specifying which approach should be used to determine the p-value in a two-sided test. Can be \dQuote{fisheR}, \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
+a character vector specifying which approach should be used to determine the p-value in a two-sided test. Can be \dQuote{fisheR}, \dQuote{minimum.likelihood} or \dQuote{double}. Ignored if \sQuote{alternative} is \dQuote{less} or \dQuote{greater}
 }
   \item{nthreads}{
 the number of threads that should be used
@@ -36,6 +35,7 @@ There is a lot of discussion about the correct way to calculate a p-value in a t
 
 Three types of two-sided p-values are implemented. The first one (default) is the approach used by the Fisher's test implementation In R. It is currently used only for \eqn{2 \times 2}{2x2} tables. It is similar to the minimum-likelihood approach, which is also usable. The third one is the so-called doubling approach. In case of tables with I!=2 and J=!2 or \eqn{2 \times 2 \times 2}{2x2x2} tables instead of the fisheR implementation the minimum-likelihood implementation is applied.
 
+If pval.method is longer than one, all corresponding p-values are provided in the output, but only the first one is shown when calling output-object. If pval.method is \code{NULL}, all p-values are provided in the output, but only the first one (currently \dQuote{fisheR}) is shown when calling output-object.
 }
 \value{
 A list with class \sQuote{"htest"} containing the following components
@@ -80,6 +80,7 @@ The code for 2x2x2 hypergeometric test is a C translation of the
 	CT <- matrix(c(3,1,1,3), nrow=2, dimnames=dmn)
 	hypergeom.test(CT, alternative="two.sided")
 	hypergeom.test(CT, alternative="two.sided", pval.method="double")
+	out <- hypergeom.test(CT, alternative="two.sided", pval.method=NULL)
 	hypergeom.test(CT, alternative="less")
 	hypergeom.test(CT, alternative="greater")
 	}

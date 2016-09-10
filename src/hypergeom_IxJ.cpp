@@ -15,24 +15,24 @@
 #define ULONGLONG uint64_t
 #define NUMBER_OF_PVAL (6-1)
 
-//#include <stdio.h>
-// void printTable(int **x, int *dim, int *rowsums, int *colsums, int *margins){
-// 		printf("-------------------------------------------------------\n");
-// 		for( int i=0; i<dim[0]; i++ ){
-// 			for( int j=0; j<dim[1]; j++ ){
-// 				printf("%i\t", x[i][j]);
-// 			}
-// 			printf("| %i\t| %i\n", rowsums[i], margins[i]);
-// 		}
-// 		printf("-------------------------------------------------------\n");
-// 		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", colsums[i] ); }
-// 		printf("\n-------------------------------------------------------\n");
-// 		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", margins[dim[0]+i] ); }
-// 		printf("\n=======================================================\n");
-// 
-// 
-// }
-
+#ifdef DEBUG
+#include <R_ext/Utils.h>
+#include <stdio.h>
+void printTable(int **x, int *dim, int *rowsums, int *colsums, int *margins){
+		printf("-------------------------------------------------------\n");
+		for( int i=0; i<dim[0]; i++ ){
+			for( int j=0; j<dim[1]; j++ ){
+				printf("%i\t", x[i][j]);
+			}
+			printf("| %i\t| %i\n", rowsums[i], margins[i]);
+		}
+		printf("-------------------------------------------------------\n");
+		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", colsums[i] ); } printf("\t\tcolsums");
+		printf("\n-------------------------------------------------------\n");
+		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", margins[dim[0]+i] ); } printf("\t\tmargins");
+		printf("\n=======================================================\n");
+}
+#endif
 
 struct StructConstants{
 	int *dim;
@@ -54,6 +54,7 @@ void update( int **x, int *dim, ULONGLONG *countTables, double *probTables, ULON
 	double lmm=0.0;
 	for(int i=0; i<dim[0]; ++i){for(int j=0; j<dim[1]; ++j){lmm += preCalcFact[ x[i][j] ];}}
 	double prob=(diff_lfmarginsTotal_lfN - lmm) < -708 ? 0.0 : exp(diff_lfmarginsTotal_lfN - lmm); // Taylor series approximation beyond x=-708 always zero (at double precision), but extremely slow
+	
 	probTables[0] += prob; ++countTables[0];
 	if( x[0][0] == *O000 )	{ ++nO000[0]; }
 	if( x[0][0] <= *O000 )	{ probTables[1] += prob; ++countTables[1]; } //less
@@ -87,16 +88,15 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		double *local_probTables=new double[4];
 		for( int h=0; h<4; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
 		ULONGLONG *local_hist=new ULONGLONG[support[1]+1];
-		for( int h=0; h<support[1]+1; ++h ){ local_hist[h]=0; }
+        for( int h=0; h<support[1]+1; ++h ){ local_hist[h]=0; }
+		
+        int **x=new int*[ 2 ]; x[0]=new int[2]; x[1]=new int[2];
 		
 		#pragma omp for schedule(dynamic)
 		for( int i=support[0]; i<=support[1]; ++i ){
-			int *rowsums=new int[2];
-			int *colsums=new int[2];
-			int **x=new int*[ 2 ];
-			for( int hh=0; hh<2; hh++ ){
-				x[hh]= new int[2 ]; rowsums[hh]=colsums[hh]=0;
-			}
+			int rowsums[2]; 
+			int colsums[2];
+            rowsums[0]=rowsums[1]=colsums[0]=colsums[1]=0;
 			x[0][0]=x[1][0]=x[0][1]=x[1][1]=-1;
 			
 			x[0][0]=i; 
@@ -113,11 +113,7 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 			
 			update( x, Constants->dim, local_countTables, local_probTables, local_nO000
 					, Constants->preCalcFact, Constants->O000, Constants->p0, Constants->diff_lfmarginsTotal_lfN );
-			
-			
-			delete[] rowsums; delete[] colsums;
-			delete[] x[0]; delete[] x[1]; delete[] x;
-		}
+        }
 		
 		#pragma omp critical
 		{
@@ -162,6 +158,7 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 
 
+
 /*
  * 
  * 	CASE I x 2
@@ -172,12 +169,20 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 extern "C"
 void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int *colsums, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000){
+    #ifdef DEBUG
+    printf("Entering 'recIx2'\n"); fflush(stdout);
+    #endif
 
 	int I=Constants->dim[0];
 	int *dim=Constants->dim;
 	int *margins=Constants->margins;
 	int remain_col=margins[ I ] - colsums[0]; // margins[I]==margin of first column
 	if( i == I-1 ){ // reached last row
+        #ifdef DEBUG
+        printf("Reached last row: I-1=%i\n", I-1); fflush(stdout);
+        //printTable(x, dim, rowsums, colsums, margins);
+        #endif
+        
 		x[ i ][ 0 ]=remain_col;
 		if( margins[ i ] >= x[ i ][ 0 ] ){ 
 			x[ i ][ 1 ]=margins[ i ]-x[ i ][ 0 ];
@@ -185,6 +190,11 @@ void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int
 			colsums[ 1 ] += x[ i ][ 1 ];
 			rowsums[ i ] = x[i][0]+x[i][1];
 			if( margins[ I+1 ] == colsums[ 1 ] ){
+                #ifdef DEBUG
+                printf("Updating\n"); fflush(stdout);
+                printTable(x, dim, rowsums, colsums, margins);
+                R_CheckUserInterrupt();
+                #endif
 				update( x, dim, countTables, probTables, nO000
 					, Constants->preCalcFact, Constants->O000, Constants->p0, Constants->diff_lfmarginsTotal_lfN );
 			}
@@ -213,14 +223,16 @@ void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int
 		delete[] rowsums0;
 		delete[] colsums0;
 		for( int hh=0; hh<dim[0]; ++hh ){ delete[] xx[hh]; }; delete[] xx;
-
 	}
 }
 
 
 extern "C"
 void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, int *nthreads){
-
+    #ifdef DEBUG
+    printf("Entering 'runIx2'\n"); fflush(stdout);
+    #endif
+    
 	int *margins=Constants->margins;
 	int *dim=Constants->dim;
 	int min00=( (margins[0] < margins[ dim[0] ]) ? margins[0] : margins[ dim[0] ] );
@@ -231,15 +243,18 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		ULONGLONG *local_countTables=new ULONGLONG[4];
 		double *local_probTables=new double[4];
 		for( int h=0; h<4; ++h ){ local_countTables[h]=0; local_probTables[h]=0.0; }
-	
+
+        int *rowsums=new int[ dim[0] ];
+        int colsums[2];
+        int **x=new int*[ dim[0] ];
+        for( int hh=0; hh<dim[0]; ++hh ){ x[hh]= new int[ 2 ]; }
+
+		
 		#pragma omp for schedule(dynamic)
 		for( int i=0; i<=min00; ++i ){
-			int *rowsums=new int[ dim[0] ];
-			int *colsums=new int[2];
-			int **x=new int*[ dim[0] ];
 			for( int hh=0; hh<dim[0]; ++hh ){
-				x[hh]= new int[ 2 ]; rowsums[hh]=0;
-				for( int gg=0; gg<2; gg++ ){ x[hh][gg]= -1; }
+				rowsums[hh]=0;
+                for( int gg=0; gg<2; gg++ ){ x[hh][gg]= 0; }
 			}
 			colsums[0]=colsums[1]=0;
 
@@ -252,9 +267,9 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 			if( colsums[1] > margins[ dim[0]+1 ] ){ continue; }
 			recIx2( Constants, x, 1, rowsums, colsums, local_countTables, local_probTables, local_nO000 );
 			
-			delete[] rowsums; delete[] colsums;
-			for( int hh=0; hh<dim[0]; hh++ ){ delete[] x[hh]; }; delete[] x;
 		}
+        delete[] rowsums; //delete[] colsums;
+        for( int hh=0; hh<dim[0]; hh++ ){ delete[] x[hh]; }; delete[] x;
 		
 		#pragma omp critical
 		{
@@ -269,8 +284,6 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 		delete[] local_probTables;
 		delete[] local_nO000;
 	}
-	
-	
 }
 
 
@@ -284,6 +297,9 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 extern "C"
 void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int j, int *rowsums, int *colsums, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000){
+    #ifdef DEBUG
+    printf("Entering 'recIxJ'\n"); fflush(stdout);
+    #endif
 
 // 	int rc=*reccall;
 // 	*reccall=(++rc);
@@ -365,6 +381,9 @@ void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int
 
 extern "C"
 void runIxJ(struct StructConstants *Constants, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, int *nthreads){
+    #ifdef DEBUG
+    printf("Entering 'runIxJ'\n"); fflush(stdout);
+    #endif
 
 	int *margins=Constants->margins;
 	int *dim=Constants->dim;
@@ -467,20 +486,27 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	Constants->dim=dim;
 	Constants->margins=margins;
 	
-	
+#ifdef DEBUG
+    printf("dim=(%i,%i)\n", dim[0], dim[1]);
+#endif
+    
 	if( dim[0]==2 && dim[1]==2 ){
 		run2x2(Constants, countTables, probTables, nO000, nthreads);
-
 	}else{
 		if( dim[0]>2 && dim[1]==2 ){
+            #ifdef DEBUG
+                printf("Running Ix2 sub-function\n"); fflush(stdout);
+        #endif
+
 			runIx2(Constants, countTables, probTables, nO000, nthreads);
 		}else{
+            #ifdef DEBUG
+            printf("Running IxJ sub-function\n"); fflush(stdout);
+            #endif
+
 			runIxJ(Constants, countTables, probTables, nO000, nthreads);
 		}
 	}
-	
-	
-
 	
 	
 	// h=0: cum; h=1: less; h=2: greater; h=3: two-sided (ml); h=4: two-sided (fisheR); h=5: two-sided (double)
@@ -504,95 +530,4 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	free(Constants);
 }
 
-
-//void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
-extern "C"
-SEXP hypergeom_IxJ_a(SEXP O000, SEXP N, SEXP margins, SEXP p0, SEXP dim, SEXP nthreads){
-	
-
-	double *n0=new double[1];
-	double *Prob= new double[NUMBER_OF_PVAL+1];
-	double *Freq= new double[NUMBER_OF_PVAL+1];
-	for(int h=0; h<NUMBER_OF_PVAL+1; ++h){
-		Prob[h]=Freq[h]=0.0;
-	}
-	hypergeom_IxJ(INTEGER(O000), INTEGER(N), INTEGER(margins), REAL(p0), n0, Prob, Freq, INTEGER(dim), INTEGER(nthreads));
-	
-	SEXP n0_=PROTECT(allocVector(REALSXP, 1));
-	REAL(n0_)[0]=n0[0];
-	SEXP Prob_=PROTECT(allocVector(REALSXP, NUMBER_OF_PVAL+1));
-	SEXP Freq_=PROTECT(allocVector(REALSXP, NUMBER_OF_PVAL+1));
-	for( int h=0; h<NUMBER_OF_PVAL+1; ++h ){
-		REAL(Prob_)[h]=Prob[h];
-		REAL(Freq_)[h]=Freq[h];
-	}
-	
-	SEXP lst=PROTECT( allocVector( VECSXP, 3 ) );
-	SET_VECTOR_ELT(lst, 0, (n0_));
-	SET_VECTOR_ELT(lst, 1, (Prob_));
-	SET_VECTOR_ELT(lst, 2, (Freq_));
-	
-	UNPROTECT(4);
-	delete[] Prob;
-	delete[] Freq;
-	delete[] n0;
-	return(lst);
-}
-
-
-
-
-//void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, double *Prob, double *Freq, int *dim, int *nthreads){
-extern "C"
-SEXP hypergeom_IxJ_list(SEXP O000_vec, SEXP N, SEXP margins_list, SEXP p0_vec, SEXP dim, SEXP nthreads){
-	int ntab=length(O000_vec);
-
-	SEXP lst_out=PROTECT( allocVector( VECSXP, ntab ) );
-	
-	int *O000_vec_intern=INTEGER(O000_vec);
-	double *p0_vec_intern=REAL(p0_vec);
-
-	int NP=NUMBER_OF_PVAL+1;
-	double *n0=new double[1];
-	double *Prob= new double[NP];
-	double *Freq= new double[NP];
-	
-	
-	int *NN=INTEGER(N);
-	int *DIM=INTEGER(dim);
-	int *Nthreads=INTEGER(nthreads);
-	
-	for( int i=0; i<ntab; ++i ){
-		n0[0]=0;
-		for(int h=0; h<NP; ++h){
-			Prob[h]=Freq[h]=0.0;
-		}
-		hypergeom_IxJ(&(O000_vec_intern[i]), NN, INTEGER(VECTOR_ELT(margins_list, i)), &(p0_vec_intern[i]), n0, Prob, Freq, DIM, Nthreads);
-		
-		SEXP n0_=PROTECT(allocVector(REALSXP, 1));
-		SEXP Prob_=PROTECT(allocVector(REALSXP, NP));
-		SEXP Freq_=PROTECT(allocVector(REALSXP, NP));
-		
-		REAL(n0_)[0]=n0[0];
-		for( int h=0; h<NP; ++h ){
-			REAL(Prob_)[h]=Prob[h];
-			REAL(Freq_)[h]=Freq[h];
-		}
-		
-		SEXP lst=PROTECT( allocVector( VECSXP, 3 ) );
-		SET_VECTOR_ELT(lst, 0, (n0_));
-		SET_VECTOR_ELT(lst, 1, (Prob_));
-		SET_VECTOR_ELT(lst, 2, (Freq_));
-				
-		UNPROTECT(4);
-		
-		SET_VECTOR_ELT(lst_out, i, lst);
-	}
-	delete[] Prob;
-	delete[] Freq;
-	delete[] n0;
-
-	UNPROTECT(1);
-	return(lst_out);
-}
 

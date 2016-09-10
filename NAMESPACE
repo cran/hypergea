@@ -1,6 +1,5 @@
 useDynLib("hypergea",  .registration=TRUE, .fixes="C_")
 export("hypergeom.test")
-export("hypergeom.test.list")
 export("getOddsRatio")
 export("getMargins")
 export("getExpectedValues")

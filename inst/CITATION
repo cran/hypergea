@@ -1,0 +1,8 @@
+year <- sub("-.*", "", meta$Date)
+note <- sprintf("R package version %s", meta$Version)
+bibentry(bibtype = "Manual",
+         title = "{hypergea}: Hypergeometric Tests",
+         author = c(person("Markus", "Boenn")),
+         year = year,
+         note = note,
+         url = "https://CRAN.R-project.org/package=hypergea")

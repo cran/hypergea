@@ -2,10 +2,27 @@
 \title{News for Package 'hypergea'}
 \newcommand{\cpkg}{\href{http://CRAN.R-project.org/package=#1}{\pkg{#1}}}
 
+\section{Changes in hypergea version 1.3.3 (2016-09-09)}{
+  \itemize{
+    \item \code{hypergeom.test} now throws warning in case of p-value identical to zero (two-sided test) and changes p-value using other p-value-approach
+    \item contact e-mail address changed to \code{markus.boenn.sf@googlemail.com}
+    \item minor changes in C-code \code{run2x2} and \code{runIx2}
+    \item unit tests added
+    \item added functions for exclusive use by unit tests
+  }
+}
+
+
+\section{Changes in hypergea version 1.3.2 (2016-04-14)}{
+  \itemize{
+    \item added CITATION-file
+  }
+}
+
 
 \section{Changes in hypergea version 1.3.1 (2016-04-09)}{
   \itemize{
-    \item fixed bug in source \code{hypergeom_IxJ.cpp} causing compile error on Solaris (relevant for R 3.3.0 and higher)
+    \item fixed 'bug' in source \code{hypergeom_IxJ.cpp} causing compile error on Solaris (relevant for R 3.3.0 and higher)
   }
 }
 
