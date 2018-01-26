@@ -37,6 +37,7 @@ function( x, nthreads=2, ... ){
 	N <- as.integer(sum(CT))
 	dm <- as.integer(dim(CT))
 	margins <- getMargins( CT )
+		
 	prob.obs <- .getProbObs( margins, CT, N, dm )
 	marg.obs <- as.integer(sapply(margins, function(x){x[1]}))
 	Prob <- double(6)
@@ -49,7 +50,7 @@ function( x, nthreads=2, ... ){
 
 	res <- c()
 	if( (len_dm == 2) ){
-		if( !is.null(list(...)$aa) ){ 		
+		if( !is.null(list(...)$aa) ){
 		res <- .Call("hypergeom_IxJ_a", CT[1], N, (unlist(margins)), (prob.obs), dm, nthreads, PACKAGE="hypergea")
 		names(res) <- c("n0", "Prob", "Freq")
 

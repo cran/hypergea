@@ -15,24 +15,6 @@
 #define ULONGLONG uint64_t
 #define NUMBER_OF_PVAL (6-1)
 
-#ifdef DEBUG
-#include <R_ext/Utils.h>
-#include <stdio.h>
-void printTable(int **x, int *dim, int *rowsums, int *colsums, int *margins){
-		printf("-------------------------------------------------------\n");
-		for( int i=0; i<dim[0]; i++ ){
-			for( int j=0; j<dim[1]; j++ ){
-				printf("%i\t", x[i][j]);
-			}
-			printf("| %i\t| %i\n", rowsums[i], margins[i]);
-		}
-		printf("-------------------------------------------------------\n");
-		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", colsums[i] ); } printf("\t\tcolsums");
-		printf("\n-------------------------------------------------------\n");
-		for( int i=0; i<dim[1]; i++ ){ printf( "%i\t", margins[dim[0]+i] ); } printf("\t\tmargins");
-		printf("\n=======================================================\n");
-}
-#endif
 
 struct StructConstants{
 	int *dim;
@@ -169,20 +151,13 @@ void run2x2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 extern "C"
 void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int *colsums, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000){
-    #ifdef DEBUG
-    printf("Entering 'recIx2'\n"); fflush(stdout);
-    #endif
-
+    
 	int I=Constants->dim[0];
 	int *dim=Constants->dim;
 	int *margins=Constants->margins;
 	int remain_col=margins[ I ] - colsums[0]; // margins[I]==margin of first column
 	if( i == I-1 ){ // reached last row
-        #ifdef DEBUG
-        printf("Reached last row: I-1=%i\n", I-1); fflush(stdout);
-        //printTable(x, dim, rowsums, colsums, margins);
-        #endif
-        
+                
 		x[ i ][ 0 ]=remain_col;
 		if( margins[ i ] >= x[ i ][ 0 ] ){ 
 			x[ i ][ 1 ]=margins[ i ]-x[ i ][ 0 ];
@@ -190,12 +165,7 @@ void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int
 			colsums[ 1 ] += x[ i ][ 1 ];
 			rowsums[ i ] = x[i][0]+x[i][1];
 			if( margins[ I+1 ] == colsums[ 1 ] ){
-                #ifdef DEBUG
-                printf("Updating\n"); fflush(stdout);
-                printTable(x, dim, rowsums, colsums, margins);
-                R_CheckUserInterrupt();
-                #endif
-				update( x, dim, countTables, probTables, nO000
+                				update( x, dim, countTables, probTables, nO000
 					, Constants->preCalcFact, Constants->O000, Constants->p0, Constants->diff_lfmarginsTotal_lfN );
 			}
 		}
@@ -229,10 +199,7 @@ void recIx2(struct StructConstants *Constants, int **x, int i, int *rowsums, int
 
 extern "C"
 void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, int *nthreads){
-    #ifdef DEBUG
-    printf("Entering 'runIx2'\n"); fflush(stdout);
-    #endif
-    
+        
 	int *margins=Constants->margins;
 	int *dim=Constants->dim;
 	int min00=( (margins[0] < margins[ dim[0] ]) ? margins[0] : margins[ dim[0] ] );
@@ -297,10 +264,7 @@ void runIx2(struct StructConstants *Constants, ULONGLONG *countTables, double *p
 
 extern "C"
 void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int j, int *rowsums, int *colsums, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000){
-    #ifdef DEBUG
-    printf("Entering 'recIxJ'\n"); fflush(stdout);
-    #endif
-
+    
 // 	int rc=*reccall;
 // 	*reccall=(++rc);
 	int I=Constants->dim[0];
@@ -381,10 +345,7 @@ void recIxJ(int *reccall, struct StructConstants *Constants, int **x, int i, int
 
 extern "C"
 void runIxJ(struct StructConstants *Constants, ULONGLONG *countTables, double *probTables, ULONGLONG *nO000, int *nthreads){
-    #ifdef DEBUG
-    printf("Entering 'runIxJ'\n"); fflush(stdout);
-    #endif
-
+    
 	int *margins=Constants->margins;
 	int *dim=Constants->dim;
 	int zero=0;
@@ -486,24 +447,15 @@ void hypergeom_IxJ(int *O000, int *N, int *margins, double *p0, double *n0, doub
 	Constants->dim=dim;
 	Constants->margins=margins;
 	
-#ifdef DEBUG
-    printf("dim=(%i,%i)\n", dim[0], dim[1]);
-#endif
     
 	if( dim[0]==2 && dim[1]==2 ){
 		run2x2(Constants, countTables, probTables, nO000, nthreads);
 	}else{
 		if( dim[0]>2 && dim[1]==2 ){
-            #ifdef DEBUG
-                printf("Running Ix2 sub-function\n"); fflush(stdout);
-        #endif
-
+            
 			runIx2(Constants, countTables, probTables, nO000, nthreads);
 		}else{
-            #ifdef DEBUG
-            printf("Running IxJ sub-function\n"); fflush(stdout);
-            #endif
-
+            
 			runIxJ(Constants, countTables, probTables, nO000, nthreads);
 		}
 	}

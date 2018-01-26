@@ -35,6 +35,8 @@ function( x, alternative='two.sided', pval.method="fisheR", nthreads=2, ... ){
 			p.value <- P.value[1]
 		}
 	}
+	p.value <- min(p.value, 1) # double approach can result in P-value equal 2, e.g. x <- cbind(c(0,0,0),c(5,0,1))
+	P.value <- sapply( P.value, function( v ){ min(v, 1) } )
 
 	
 	METHOD <- "Exact hypergeometric test for a "

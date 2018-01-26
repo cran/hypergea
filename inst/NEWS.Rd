@@ -2,6 +2,14 @@
 \title{News for Package 'hypergea'}
 \newcommand{\cpkg}{\href{http://CRAN.R-project.org/package=#1}{\pkg{#1}}}
 
+
+\section{Changes in hypergea version 1.3.4 (2017-????)}{
+  \itemize{
+    \item Ensure that P-value lies between zero and one, which is not always true for 'double' approach applied on very sparse matrices with row-/col-sums equal to zero.
+  }
+}
+
+
 \section{Changes in hypergea version 1.3.3 (2016-09-09)}{
   \itemize{
     \item \code{hypergeom.test} now throws warning in case of p-value identical to zero (two-sided test) and changes p-value using other p-value-approach
